@@ -5,7 +5,7 @@ The more recent backups are, the highest frequency they will be kept.
 python mysqldump_save.py mysqldump_save_config.json -c -d -v
 ```
 
-# Options
+## Options
 
 ```
 positional arguments:
@@ -19,7 +19,7 @@ optional arguments:
   -v, --verbose        Verbose mode.
 ```
 
-# Backups frequency
+## Backups frequency
 
 - For 2 days, 1 backup is kept for every 1 hour
 - For 7 days, 1 backup is kept for every 1 day
@@ -29,7 +29,7 @@ optional arguments:
 
 *In the near future, this will be configurable.*
 
-# Configuration
+## Configuration
 
 To work it needs a JSON configuration file. As follows:
 
@@ -52,18 +52,19 @@ To work it needs a JSON configuration file. As follows:
 
 The "mysql" dictionary is voluntary similar to Django Settings format.
 
-# Limitations
+## Limitations
 
 For now there are 2 major limitations that are going to be fixed in the very near future:
 
 - ***No compression***: for MySQL backups, a gzip compression will reduce the size of backups very efficiently
 - ***No configuration for frequency of old backups.***
+- Code is not easily accessible as a Python module. In the future, it will be accessible also as a Python class, so you can integrate it in other Python-based routines.
 
-# License
+## License
 
 Released under the [MIT License](http://opensource.org/licenses/MIT).
 
-Copyright (c) 2013 Micha Mazaheri
+Copyright (c) 2013 [Micha Mazaheri](http://micha.mazaheri.me)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
