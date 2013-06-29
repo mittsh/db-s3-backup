@@ -19,6 +19,8 @@ intervals = [
 	(None, timedelta(days=30)),
 ]
 
+mysqldump_regex = re.compile(r'mysqldump_(.*?)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(.*?)\.sql')
+
 # Connect to Amazon S3
 
 def connect_to_s3(aws_config, verbose = False):
@@ -83,9 +85,9 @@ def cleanup_old_backups(mysql_config, intervals, s3_bucket, verbose = False, act
 	backups=[]
 	now=datetime.now()
 
-	regex = re.compile(r'mysqldump_(.*?)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(.*?)\.sql')
+	
 	for key in s3_bucket.list():
-		m=regex.match(key.name)
+		m=mysqldump_regex.match(key.name)
 		if m and m.group(1) == mysql_config['NAME']:
 			d=datetime(int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))
 		
@@ -94,8 +96,8 @@ def cleanup_old_backups(mysql_config, intervals, s3_bucket, verbose = False, act
 	backups.sort(key=lambda (key, age,): age, reverse=False)
 	
 	if verbose:
-		print('Found {count} backups'.format(count=len(backups)))
-		print('Deleting old backups')
+		print('Found {count} backups on Amazon S3'.format(count=len(backups)))
+		print('Deleting old backups on Amazon S3')
 
 	oldest_age = None
 
@@ -125,6 +127,20 @@ def cleanup_old_backups(mysql_config, intervals, s3_bucket, verbose = False, act
 				key.delete()
 
 # 
+# Delete local backups
+# 
+
+def delete_local_backups(dir_path, verbose = False, action = True):
+	files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path,f)) and mysqldump_regex.match(f)]
+	print('Deleting local backups')
+	for file in files:
+		filepath = os.path.join(dir_path, file)
+		if verbose:
+			print('- Delete {filepath}'.format(filepath=filepath))
+		if action:
+			os.remove(filepath)
+
+# 
 # Run as Main + Option Parser
 # 
 
@@ -145,18 +161,24 @@ if __name__ == '__main__':
 		default=False,
 	)
 	parser.add_argument(
-		'-d'
-		'--delete',
+		'--delete-remote',
 		action='store_true',
-		dest='delete',
-		help='Delete old backups.',
+		dest='delete_remote',
+		help='Delete old backups on Amazon S3.',
+		default=False,
+	)
+	parser.add_argument(
+		'--delete-local',
+		action='store_true',
+		dest='delete_local',
+		help='Delete old local backups.',
 		default=False,
 	)
 	parser.add_argument(
 		'--simulate-delete',
 		action='store_true',
 		dest='simulate_delete',
-		help='Simulate old backups deletion.',
+		help='Simulate old backups deletion on Amazon S3 or locally.',
 		default=False,
 	)
 	parser.add_argument(
@@ -184,7 +206,8 @@ if __name__ == '__main__':
 	
 	# Generate name/path/now
 	filename = 'mysqldump_{database}_{datetime:%Y}_{datetime:%m}_{datetime:%d}_{datetime:%H}_{datetime:%M}_{datetime:%S}_{random}.sql'.format(datetime=datetime.now(), database=config['mysql']['NAME'], random=''.join([random.choice(string.letters+string.digits) for x in range(5)]))
-	filepath = os.path.join(os.path.expanduser('~/mysqldump'), filename)
+	backup_dir = os.path.expanduser('~/mysqldump')
+	filepath = os.path.join(backup_dir, filename)
 	
 	# Run scripts...
 	
@@ -193,10 +216,11 @@ if __name__ == '__main__':
 	if args.create_dump:
 		create_mysql_dump(config['mysql'], s3_bucket, filename, filepath, verbose=args.verbose)
 	
-	if args.simulate_delete:
-		cleanup_old_backups(config['mysql'], intervals, s3_bucket, verbose=True, action=False)
-	elif args.delete:
-		cleanup_old_backups(config['mysql'], intervals, s3_bucket, verbose=args.verbose, action=True)
+	if args.delete_remote:
+		cleanup_old_backups(config['mysql'], intervals, s3_bucket, verbose=args.verbose, action = (not args.simulate_delete))
+	
+	if args.delete_local:
+		delete_local_backups(backup_dir, verbose = args.verbose, action = (not args.simulate_delete))
 
 
 

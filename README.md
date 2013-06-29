@@ -2,21 +2,22 @@
 The more recent backups are, the highest frequency they will be kept.
 
 ```
-python mysqldump_save.py mysqldump_save_config.json -c -d -v
+python mysqldump_save.py mysqldump_save_config.json -c --delete-remote --delete-local -v
 ```
 
 ## Options
 
 ```
 positional arguments:
-  config_file          Backup JSON configuration file.
+  config_file        Backup JSON configuration file.
 
 optional arguments:
-  -h, --help           show this help message and exit
-  -c, --create_dump    Creates a MySQL dump and uploads it to Amazon S3.
-  -d, --delete         Delete old backups.
-  --simulate-delete    Simulate old backups deletion.
-  -v, --verbose        Verbose mode.
+  -h, --help         show this help message and exit
+  -c--create_dump    Creates a MySQL dump and uploads it to Amazon S3.
+  --delete-remote    Delete old backups on Amazon S3.
+  --delete-local     Delete old local backups.
+  --simulate-delete  Simulate old backups deletion on Amazon S3 or locally.
+  -v--verbose        Verbose mode.
 ```
 
 ## Backups frequency
