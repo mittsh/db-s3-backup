@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import random, string
 import os
 import re
+from shutil import copy2 as copyfile
 
 intervals = [
 	# For 2 days, 1 backup per 1 hour
@@ -64,7 +65,30 @@ def create_mysql_dump(mysql_config, s3_bucket, s3_bucket_key_name, filepath, ver
 		print('+ Dump finished')
 
 	# Send file to S3
+	upload_dump_s3(f, s3_bucket, s3_bucket_key_name, verbose)
+
+	f.close()
+
+# 
+# Create SQLite dump
+# 
+
+def create_sqlite_dump(sqlite_config, s3_bucket, s3_bucket_key_name, filepath, verbose = False):
+	if verbose:
+		print('Copying SQLite file to {filepath}'.format(filepath=filepath))
 	
+	copyfile(sqlite_config['NAME'], filepath)
+	
+	# Send file to S3
+	f=open(filepath, 'r')
+	upload_dump_s3(f, s3_bucket, s3_bucket_key_name, verbose)
+	f.close()
+
+# 
+# Upload dump to Amazon S3
+# 
+
+def upload_dump_s3(f, s3_bucket, s3_bucket_key_name, verbose = False):
 	s3_file = Key(s3_bucket, name=s3_bucket_key_name)
 
 	if verbose:
@@ -74,8 +98,6 @@ def create_mysql_dump(mysql_config, s3_bucket, s3_bucket_key_name, filepath, ver
 	
 	if verbose:
 		print('+ Upload finished')
-
-	f.close()
 
 # 
 # Cleanup old S3 backups
@@ -233,8 +255,7 @@ if __name__ == '__main__':
 		if config['database']['ENGINE'] == 'mysql':
 			create_mysql_dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose)
 		elif config['database']['ENGINE'] == 'sqlite':
-			print('Not yet supported')
-			exit(0)
+			create_sqlite_dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose)
 	
 	if args.delete_remote:
 		cleanup_old_backups(backup_prefix, backup_extension, intervals, s3_bucket, verbose=args.verbose, action = (not args.simulate_delete))
