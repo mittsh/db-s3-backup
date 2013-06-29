@@ -6,11 +6,76 @@ It currently supports databases:
 - MySQL
 - SQLite
 
-But feel free to fork to add more!
+But feel free to fork and add more!
+
+## Quick Start
+
+This is a very simple quick start guide, to make you backup easily your MySQL or SQLite database to Amazon S3, and schedule that as an hourly [crontab](https://en.wikipedia.org/wiki/Cron).
+
+### Clone this repo into your server.
+
+```git clone git@github.com:mittsh/db-s3-backup.git```
+
+### Create a JSON file to setup your backup configuration.
+
+#### MySQL Configuration
+ 
+```json
+{
+	"aws":{
+		"AWS_ACCESS_KEY_ID":"_MY_KEY_",
+		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
+		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
+	},
+	"database":{
+		"ENGINE":"mysql",
+		"NAME":"database",
+		"USER":"username",
+		"PASSWORD": "password",
+		"HOST":"mysql-host",
+		"PORT":"3306"
+	}
+}
+```
+
+#### SQLite Configuration
+
+```json
+{
+	"aws":{
+		"AWS_ACCESS_KEY_ID":"_MY_KEY_",
+		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
+		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
+	},
+	"database":{
+		"ENGINE":"sqlite",
+		"NAME":"MyDatabase.sqlite"
+	}
+}
+```
+
+### Try
+
+It's recommended to use options ```--delete-remote``` and ```--delete-local``` so it will automatically cleanup your old backups, and prevent to fill up your disk!
 
 ```
-python db_s3_backup.py db_backup/ db_backup_config.json -c --delete-remote --delete-local -v
+python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_config.json -c --delete-remote --delete-local -v
 ```
+
+Also, you can use ```--simulate-delete``` and ```-v``` to see which files are going to be deleted or kept.
+
+```
+python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_config.json -c --delete-remote --delete-local -v
+```
+
+### Schedule your crontab
+
+Edit your crontab: ```crontab -e``` and add the line:
+
+```@hourly python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_config.json -c --delete-remote --delete-local -v```
+
+
+Now, you're all set up and safe! Your backups are going to be saved on Amazon S3, see 'Backups frequency'.
 
 ## Options
 
@@ -41,42 +106,7 @@ optional arguments:
 ## Configuration
 
 To work it needs a JSON configuration file. The "database" dictionary is voluntary similar to Django Settings format.
-
-### Example: MySQL
-
-```
-{
-	"aws":{
-		"AWS_ACCESS_KEY_ID":"_MY_KEY_",
-		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
-		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
-	},
-	"database":{
-		"ENGINE":"mysql",
-		"NAME":"database",
-		"USER":"username",
-		"PASSWORD": "password",
-		"HOST":"mysql-host",
-		"PORT":"3306"
-	}
-}
-```
-
-### Example: SQLite
-
-```
-{
-	"aws":{
-		"AWS_ACCESS_KEY_ID":"_MY_KEY_",
-		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
-		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
-	},
-	"database":{
-		"ENGINE":"sqlite",
-		"NAME":"MyDatabase.sqlite"
-	}
-}
-```
+For examples, see the 'Quick Start' section.
 
 ## Limitations
 
