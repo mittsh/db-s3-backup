@@ -115,7 +115,7 @@ def cleanup_old_backups(backup_prefix, backup_extension, intervals, s3_bucket, v
 				break
 	
 		# Keep this backup (factor 0.8 is to keep backups that are nearly 'saving_interval' distant)
-		if age - oldest_age > saving_interval * 0.8:
+		if (age - oldest_age).total_seconds() > saving_interval.total_seconds() * 0.8:
 			if verbose:
 				print('+ Keep {key}'.format(key=key.name))
 			oldest_age = age
