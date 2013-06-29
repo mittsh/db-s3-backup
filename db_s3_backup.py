@@ -19,7 +19,7 @@ intervals = [
 	(None, timedelta(days=30)),
 ]
 
-mysqldump_regex = re.compile(r'mysqldump_(.*?)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(.*?)\.sql')
+filename_regex = re.compile(r'(.*?)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(\d+)_(.*?)\.(\w+)')
 
 # Connect to Amazon S3
 
@@ -81,14 +81,14 @@ def create_mysql_dump(mysql_config, s3_bucket, s3_bucket_key_name, filepath, ver
 # Cleanup old S3 backups
 # 
 
-def cleanup_old_backups(mysql_config, intervals, s3_bucket, verbose = False, action = True):
+def cleanup_old_backups(backup_prefix, backup_extension, intervals, s3_bucket, verbose = False, action = True):
 	backups=[]
 	now=datetime.now()
 
 	
 	for key in s3_bucket.list():
-		m=mysqldump_regex.match(key.name)
-		if m and m.group(1) == mysql_config['NAME']:
+		m=filename_regex.match(key.name)
+		if m and m.group(1) == backup_prefix and m.group(9) == backup_extension:
 			d=datetime(int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6)), int(m.group(7)))
 		
 			backups.append((key, now-d))
@@ -130,15 +130,17 @@ def cleanup_old_backups(mysql_config, intervals, s3_bucket, verbose = False, act
 # Delete local backups
 # 
 
-def delete_local_backups(dir_path, verbose = False, action = True):
-	files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path,f)) and mysqldump_regex.match(f)]
+def delete_local_backups(dir_path, backup_prefix, backup_extension, verbose = False, action = True):
+	files = [f for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path,f))]
 	print('Deleting local backups')
 	for file in files:
-		filepath = os.path.join(dir_path, file)
-		if verbose:
-			print('- Delete {filepath}'.format(filepath=filepath))
-		if action:
-			os.remove(filepath)
+		m=filename_regex.match(file)
+		if m and m.group(1) == backup_prefix and m.group(9) == backup_extension:
+			filepath = os.path.join(dir_path, file)
+			if verbose:
+				print('- Delete {filepath}'.format(filepath=filepath))
+			if action:
+				os.remove(filepath)
 
 # 
 # Run as Main + Option Parser
@@ -147,7 +149,11 @@ def delete_local_backups(dir_path, verbose = False, action = True):
 if __name__ == '__main__':
 	import argparse, json
 	
-	parser = argparse.ArgumentParser(description='MySQL S3 Dump Tool')
+	parser = argparse.ArgumentParser(description='Database to Amazon S3 Backup Tool')
+	parser.add_argument(
+		dest='backup_directory',
+		help='Directory where local backups will be stored.',
+	)
 	parser.add_argument(
 		dest='config_file',
 		help='Backup JSON configuration file.',
@@ -157,7 +163,7 @@ if __name__ == '__main__':
 		'--create_dump',
 		action='store_true',
 		dest='create_dump',
-		help='Creates a MySQL dump and uploads it to Amazon S3.',
+		help='Creates a database dump and uploads it to Amazon S3.',
 		default=False,
 	)
 	parser.add_argument(
@@ -204,23 +210,37 @@ if __name__ == '__main__':
 		exit(2)
 	f.close()
 	
+	# Generate backup_prefix, backup_extension and choose database
+	if config['database']['ENGINE'] == 'mysql':
+		backup_prefix = 'mysqldump_{database}'.format(database=config['database']['NAME'])
+		backup_extension = 'sql'
+	elif config['database']['ENGINE'] == 'sqlite':
+		backup_prefix = 'sqlite_backup'
+		backup_extension = 'sqlite'
+	else:
+		print('Invalid database engine:', config['database']['ENGINE'])
+		exit(3)
+	
 	# Generate name/path/now
-	filename = 'mysqldump_{database}_{datetime:%Y}_{datetime:%m}_{datetime:%d}_{datetime:%H}_{datetime:%M}_{datetime:%S}_{random}.sql'.format(datetime=datetime.now(), database=config['mysql']['NAME'], random=''.join([random.choice(string.letters+string.digits) for x in range(5)]))
-	backup_dir = os.path.expanduser('~/mysqldump')
-	filepath = os.path.join(backup_dir, filename)
+	filename = '{backup_prefix}_{datetime:%Y}_{datetime:%m}_{datetime:%d}_{datetime:%H}_{datetime:%M}_{datetime:%S}_{random}.{backup_extension}'.format(datetime=datetime.now(), backup_prefix=backup_prefix, backup_extension=backup_extension, random=''.join([random.choice(string.letters+string.digits) for x in range(5)]))
+	filepath = os.path.join(args.backup_directory, filename)
 	
 	# Run scripts...
 	
 	(s3_connection, s3_bucket,) = connect_to_s3(config['aws'], verbose=args.verbose)
 	
 	if args.create_dump:
-		create_mysql_dump(config['mysql'], s3_bucket, filename, filepath, verbose=args.verbose)
+		if config['database']['ENGINE'] == 'mysql':
+			create_mysql_dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose)
+		elif config['database']['ENGINE'] == 'sqlite':
+			print('Not yet supported')
+			exit(0)
 	
 	if args.delete_remote:
-		cleanup_old_backups(config['mysql'], intervals, s3_bucket, verbose=args.verbose, action = (not args.simulate_delete))
+		cleanup_old_backups(backup_prefix, backup_extension, intervals, s3_bucket, verbose=args.verbose, action = (not args.simulate_delete))
 	
 	if args.delete_local:
-		delete_local_backups(backup_dir, verbose = args.verbose, action = (not args.simulate_delete))
+		delete_local_backups(args.backup_directory, backup_prefix, backup_extension, verbose = args.verbose, action = (not args.simulate_delete))
 
 
 

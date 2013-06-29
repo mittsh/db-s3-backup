@@ -1,19 +1,27 @@
-**MySQL S3 Backup** is a Python Command Line Tool that makes MySQL backups easy and efficient by using Amazon S3 storage.
+**DB S3 Backup** is a Python Command Line Tool that makes database (MySQL, SQLite) backups easy and efficient by using Amazon S3 storage.
 The more recent backups are, the highest frequency they will be kept.
 
+It currently supports databases:
+
+- MySQL
+- SQLite
+
+But feel free to fork to add more!
+
 ```
-python mysqldump_save.py mysqldump_save_config.json -c --delete-remote --delete-local -v
+python db_s3_backup.py db_backup/ db_backup_config.json -c --delete-remote --delete-local -v
 ```
 
 ## Options
 
 ```
 positional arguments:
+  backup_directory   Directory where local backups will be stored.
   config_file        Backup JSON configuration file.
 
 optional arguments:
   -h, --help         show this help message and exit
-  -c--create_dump    Creates a MySQL dump and uploads it to Amazon S3.
+  -c--create_dump    Creates a database dump and uploads it to Amazon S3.
   --delete-remote    Delete old backups on Amazon S3.
   --delete-local     Delete old local backups.
   --simulate-delete  Simulate old backups deletion on Amazon S3 or locally.
@@ -32,7 +40,9 @@ optional arguments:
 
 ## Configuration
 
-To work it needs a JSON configuration file. As follows:
+To work it needs a JSON configuration file. The "database" dictionary is voluntary similar to Django Settings format.
+
+### Example: MySQL
 
 ```
 {
@@ -41,7 +51,8 @@ To work it needs a JSON configuration file. As follows:
 		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
 		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
 	},
-	"mysql":{
+	"database":{
+		"ENGINE":"mysql",
 		"NAME":"database",
 		"USER":"username",
 		"PASSWORD": "password",
@@ -51,13 +62,27 @@ To work it needs a JSON configuration file. As follows:
 }
 ```
 
-The "mysql" dictionary is voluntary similar to Django Settings format.
+### Example: SQLite
+
+```
+{
+	"aws":{
+		"AWS_ACCESS_KEY_ID":"_MY_KEY_",
+		"AWS_SECRET_ACCESS_KEY":"_MY_SECRET_KEY",
+		"AWS_STORAGE_BUCKET_NAME":"my-bucket"
+	},
+	"database":{
+		"ENGINE":"sqlite",
+		"NAME":"MyDatabase.sqlite"
+	}
+}
+```
 
 ## Limitations
 
 For now there are 2 major limitations that are going to be fixed in the very near future:
 
-- ***No compression***: for MySQL backups, a gzip compression will reduce the size of backups very efficiently
+- ***No compression***: for backups, a gzip compression will reduce the size of backups very efficiently
 - ***No configuration for frequency of old backups.***
 - Code is not easily accessible as a Python module. In the future, it will be accessible also as a Python class, so you can integrate it in other Python-based routines.
 
