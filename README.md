@@ -12,11 +12,11 @@ But feel free to fork and add more!
 
 This is a very simple quick start guide, to make you backup easily your MySQL or SQLite database to Amazon S3, and schedule that as an hourly [crontab](https://en.wikipedia.org/wiki/Cron).
 
-### Clone this repo into your server.
+### Clone this repo into your server
 
 ```git clone git@github.com:mittsh/db-s3-backup.git```
 
-### Create a JSON file to setup your backup configuration.
+### Create a JSON file to setup your backup configuration
 
 #### MySQL Configuration
  
@@ -72,8 +72,7 @@ python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_
 
 Edit your crontab: ```crontab -e``` and add the line:
 
-```@hourly python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_config.json -c --delete-remote --delete-local -v```
-
+```@hourly /usr/local/bin/python /path/to/db_s3_backup.py /path/to/your/db_backup_dir/ /path/to/db_backup_config.json -c --delete-remote --delete-local -v```
 
 Now, you're all set up and safe! Your backups are going to be saved on Amazon S3, see 'Backups frequency'.
 
