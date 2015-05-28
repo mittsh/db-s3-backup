@@ -14,7 +14,7 @@ This is a very simple quick start guide, to make you backup easily your MySQL or
 
 ### Clone this repo into your server
 
-```git clone git@github.com:mittsh/db-s3-backup.git```
+```git clone https://github.com/mittsh/db-s3-backup```
 
 ### Create a JSON file to setup your backup configuration
 
