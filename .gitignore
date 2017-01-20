@@ -1,3 +1,16 @@
+<<<<<<< Updated upstream
+=======
+# virtual environments
+v/
+venv/
+env/
+
+# backup config files / dumps
+*.json
+*.sql
+*.sqlite
+
+>>>>>>> Stashed changes
 # osx noise
 .DS_Store
 profile
