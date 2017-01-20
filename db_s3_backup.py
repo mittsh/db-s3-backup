@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 import random, string
 import os
 import re
-from shutil import copy2 as copyfile
+
+from db_s3_backup.db_interface.mysql_dump import MySQLDump
+from db_s3_backup.db_interface.sqlite_dump import SQLiteDump
 
 intervals = [
 	# For 2 days, 1 backup per 1 hour
@@ -36,53 +38,6 @@ def connect_to_s3(aws_config, verbose = False):
 
 	return (s3_connection, s3_bucket,)
 
-#
-# Create MySQL dump
-#
-
-def create_mysql_dump(mysql_config, s3_bucket, s3_bucket_key_name, filepath, verbose = False):
-	sqldump_cmd = ['mysqldump', mysql_config['NAME'], '-h', mysql_config['HOST'], '-P', mysql_config['PORT'], '-u', mysql_config['USER'], '-p{password}'.format(password=mysql_config['PASSWORD'])]
-
-	proc = subprocess.Popen(sqldump_cmd, stdout=subprocess.PIPE)
-
-	# Write to file
-
-	if verbose:
-		print('Dumping MySQL database: {database} to file {filepath}'.format(database=mysql_config['NAME'], filepath=filepath))
-
-	f=open(filepath, 'w+')
-	i=0
-	while True:
-		buf = proc.stdout.read(4096*1024) # Read 4 MB
-		if buf != '':
-			f.write(buf)
-			if verbose:
-				print('- Written 4 MB')
-		else:
-			break
-
-	if verbose:
-		print('+ Dump finished')
-
-	# Send file to S3
-	upload_dump_s3(f, s3_bucket, s3_bucket_key_name, verbose)
-
-	f.close()
-
-#
-# Create SQLite dump
-#
-
-def create_sqlite_dump(sqlite_config, s3_bucket, s3_bucket_key_name, filepath, verbose = False):
-	if verbose:
-		print('Copying SQLite file to {filepath}'.format(filepath=filepath))
-
-	copyfile(sqlite_config['NAME'], filepath)
-
-	# Send file to S3
-	f=open(filepath, 'r')
-	upload_dump_s3(f, s3_bucket, s3_bucket_key_name, verbose)
-	f.close()
 
 #
 # Upload dump to Amazon S3
@@ -254,9 +209,11 @@ if __name__ == '__main__':
 
 	if args.create_dump:
 		if config['database']['ENGINE'] == 'mysql':
-			create_mysql_dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose)
+			mysql_dump = MySQLDump()
+			mysql_dump.dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose, upload_callback=upload_dump_s3)
 		elif config['database']['ENGINE'] == 'sqlite':
-			create_sqlite_dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose)
+			sqlite_dump = SQLiteDump()
+			sqlite_dump.dump(config['database'], s3_bucket, filename, filepath, verbose=args.verbose, upload_callback=upload_dump_s3)
 
 	if args.delete_remote:
 		cleanup_old_backups(backup_prefix, backup_extension, intervals, s3_bucket, verbose=args.verbose, action = (not args.simulate_delete))
