@@ -26,3 +26,7 @@ xcuserdata
 # svn & cvs
 .svn
 CVS
+
+# python files
+*.pyc
+__pycache__/
