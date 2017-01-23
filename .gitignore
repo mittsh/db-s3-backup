@@ -1,3 +1,12 @@
+# virtual environments
+v/
+venv/
+env/
+
+# backup config files / dumps
+*.json
+*.sql
+
 # osx noise
 .DS_Store
 profile
