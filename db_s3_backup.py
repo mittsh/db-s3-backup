@@ -177,16 +177,16 @@ if __name__ == '__main__':
 
 	# Loads configuration file from JSON
 	try:
-		f=open(args.config_file, 'r')
+		with open(args.config_file, 'r') as f:
+			try:
+				config=json.loads(f.read())
+			except Exception, e:
+				print(e)
+				print('Cannot parse configuration file (must be JSON).')
+				exit(1)
 	except Exception, e:
-		print('Cannot open configuration file file ({filepath}).'.format(filepath=args.config_file))
+		print('Cannot open configuration file ({filepath}). Does it exist ?'.format(filepath=args.config_file))
 		exit(1)
-	try:
-		config=json.loads(f.read())
-	except Exception, e:
-		print('Cannot parse configuration file (must be JSON).')
-		exit(2)
-	f.close()
 
 	# Generate backup_prefix, backup_extension and choose database
 	if config['database']['ENGINE'] == 'mysql':
