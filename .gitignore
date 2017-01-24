@@ -6,6 +6,7 @@ env/
 # backup config files / dumps
 *.json
 *.sql
+*.sqlite
 
 # osx noise
 .DS_Store
@@ -25,3 +26,7 @@ xcuserdata
 # svn & cvs
 .svn
 CVS
+
+# python files
+*.pyc
+__pycache__/
