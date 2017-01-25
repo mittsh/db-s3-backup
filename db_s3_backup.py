@@ -180,11 +180,10 @@ if __name__ == '__main__':
 		with open(args.config_file, 'r') as f:
 			try:
 				config=json.loads(f.read())
-			except Exception, e:
-				print(e)
+			except ValueError as e:
 				print('Cannot parse configuration file (must be JSON).')
 				exit(1)
-	except Exception, e:
+	except IOError as e:		
 		print('Cannot open configuration file ({filepath}). Does it exist ?'.format(filepath=args.config_file))
 		exit(1)
 
